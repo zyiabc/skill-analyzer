@@ -1,0 +1,5 @@
+display_name: "Skill Analyzer"
+short_description: "Analyze and inventory installed Codex skills and plugins"
+default_prompt:
+  - "Analyze my installed skills and plugins"
+  - "列出所有已安装的技能"
