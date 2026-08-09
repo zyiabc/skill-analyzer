@@ -64,8 +64,28 @@ python scripts/analyze_skills.py --codex-home /custom/path/.codex
 | `--format markdown` | Save Markdown report to file |
 | `--format html` | Save HTML report to file |
 | `--format all` | Save all three formats (default) |
+| `--lang en` | English report, grouped by source (default) |
+| `--lang zh` | Chinese report, grouped by application domain with deduplication |
 | `--codex-home PATH` | Custom `.codex` directory |
 | `--output PATH` | Output directory for report files |
+
+### `--lang zh` Mode
+
+Generates a Chinese HTML report with skills grouped by **application domain** instead of source directory:
+
+- **Two-level categorization**: 大类 (domain) → 小类 (subcategory), e.g. 学术研究 → 论文写作
+- **Deduplication**: skills installed in multiple directories are merged into one entry
+- **Five-field cards**: 名称, 描述, 来源, 适用场景, 触发条件
+- **Interactive**: live search + category filter pills
+- **Auto-categorization**: keyword-based matching via `DOMAIN_MAP` (27 rules)
+
+```bash
+# Chinese domain-categorized report
+python scripts/analyze_skills.py --format html --lang zh --output ./reports
+
+# All formats in Chinese mode
+python scripts/analyze_skills.py --format all --lang zh --output ./reports
+```
 
 ## Output Formats
 
@@ -79,11 +99,15 @@ GitHub-renderable tables grouped by source: system, user, agents, plugins. Each 
 
 ### HTML
 
-A dark-themed, searchable single-page report with:
-- Summary statistics dashboard
-- Live search/filter bar
-- Collapsible skill cards with trigger tags
-- Plugin sections with sub-skill listings
+A dark-themed, searchable single-page report.
+
+**`--lang en` (default)**: Grouped by source (system / user / agents / plugins) with summary statistics dashboard and collapsible skill cards.
+
+**`--lang zh`**: Grouped by application domain (学术研究 / 专利 / 产品与研发 / …) with:
+- Two-level navigation (大类 → 小类) and category filter pills
+- Five-field skill cards: 名称, 描述, 来源, 适用场景, 触发条件
+- Cross-directory deduplication (same skill shown once)
+- Retired skills visually de-emphasized
 
 ## How It Works
 
@@ -120,3 +144,4 @@ MIT — see [LICENSE](LICENSE).
 ## Contributing
 
 Issues and PRs welcome at [github.com/zyiabc/skill-analyzer](https://github.com/zyiabc/skill-analyzer).
+

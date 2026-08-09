@@ -538,6 +538,161 @@ def to_html(data):
 
 
 # ---------------------------------------------------------------------------
+# Chinese domain-categorized HTML report (--lang zh)
+# ---------------------------------------------------------------------------
+
+import html as _html
+from collections import OrderedDict as _OD
+
+DOMAIN_MAP = [
+    ("\u5b66\u672f\u7814\u7a76", "\u8c03\u7814\u4e0e\u6587\u732e\u68c0\u7d22", ["deep-research", "system-study", "agent-reach", "\u8c03\u7814", "research", "\u6587\u732e", "\u5b66\u4e60\u6750\u6599"]),
+    ("\u5b66\u672f\u7814\u7a76", "\u6848\u4f8b\u4e0e\u751f\u6001\u626b\u63cf", ["case-radar", "\u6848\u4f8b", "\u751f\u6001\u626b\u63cf", "\u771f\u7269"]),
+    ("\u5b66\u672f\u7814\u7a76", "\u8bba\u6587\u5199\u4f5c", ["academic-paper", "academic-pipeline", "\u8bba\u6587", "paper", "rebuttal", "citation"]),
+    ("\u5b66\u672f\u7814\u7a76", "\u8bba\u6587\u8bc4\u5ba1", ["academic-paper-reviewer", "peer review", "referee", "\u8bc4\u5ba1", "critique"]),
+    ("\u4e13\u5229", "\u4e13\u5229\u68c0\u7d22\u4e0e\u5206\u6790", ["google-patent-search", "patent-opportunity", "\u4e13\u5229\u68c0\u7d22", "BigQuery"]),
+    ("\u4e13\u5229", "\u4e13\u5229\u64b0\u5199", ["patent-disclosure", "\u4ea4\u5e95\u4e66", "disclosure", "\u4e13\u5229\u67e5\u65b0"]),
+    ("\u4ea7\u54c1\u4e0e\u7814\u53d1", "\u9700\u6c42\u5b9a\u4e49", ["prd-doc-writer", "prd-test-writer", "backlog-manager", "issue-pool", "goal-setter", "\u9700\u6c42", "PRD", "issue", "goal contract"]),
+    ("\u4ea7\u54c1\u4e0e\u7814\u53d1", "\u7248\u672c\u89c4\u5212", ["version-planner", "vision-exploration", "\u7248\u672c", "\u613f\u666f", "MVP", "vision"]),
+    ("\u4ea7\u54c1\u4e0e\u7814\u53d1", "\u9700\u6c42\u53d8\u66f4", ["req-change-workflow", "\u9700\u6c42\u53d8\u66f4", "change workflow", "\u91cd\u6784\u6d41\u7a0b"]),
+    ("\u4ea7\u54c1\u4e0e\u7814\u53d1", "\u6d4b\u8bd5\u7f16\u6392", ["prd-auto-test-loop", "\u6d4b\u8bd5\u7f16\u6392", "test loop", "\u81ea\u52a8\u5316\u6d4b\u8bd5"]),
+    ("\u4ea7\u54c1\u4e0e\u7814\u53d1", "\u53d1\u5e03\u7ba1\u7406", ["release", "changelog", "\u53d1\u5e03", "\u53d1\u7248"]),
+    ("\u5199\u4f5c\u4e0e\u5185\u5bb9", "\u5199\u4f5c\u8f85\u52a9", ["writing-assistant", "thought-mining", "readable-output", "\u5199\u4f5c", "\u6316\u6398", "\u9009\u9898"]),
+    ("\u5199\u4f5c\u4e0e\u5185\u5bb9", "\u62a5\u544a\u4e0e\u6da6\u8272", ["weekly-report", "humanizer", "image-assistant", "\u5468\u62a5", "\u6da6\u8272", "\u914d\u56fe", "AI \u5473"]),
+    ("\u5199\u4f5c\u4e0e\u5185\u5bb9", "\u547d\u540d", ["product-naming", "\u547d\u540d", "naming", "\u8d77\u540d"]),
+    ("\u8bbe\u8ba1\u4e0e\u89c6\u89c9", "\u754c\u9762\u8bbe\u8ba1", ["design-exploration", "ui-design", "macos-product-design", "\u754c\u9762\u8bbe\u8ba1", "UI \u6837\u5f0f", "macOS", "\u539f\u578b"]),
+    ("\u8bbe\u8ba1\u4e0e\u89c6\u89c9", "\u56fe\u50cf\u751f\u6210", ["imagegen", "bitmap", "\u4f4d\u56fe", "raster", "\u63d2\u753b"]),
+    ("\u601d\u7ef4\u4e0e\u51b3\u7b56", "\u601d\u7ef4\u534f\u4f5c", ["thinking-partner", "find-top-three", "priority-judge", "multi-perspective", "\u601d\u8003", "\u4f18\u5148\u7ea7", "\u591a\u89c6\u89d2", "\u8bca\u65ad"]),
+    ("\u601d\u7ef4\u4e0e\u51b3\u7b56", "\u81ea\u4e3b\u6267\u884c", ["auto-task", "\u81ea\u4e3b\u6267\u884c", "\u957f\u7a0b\u4efb\u52a1", "\u4efb\u52a1\u961f\u5217"]),
+    ("Web\u4e0e\u4fe1\u606f\u68c0\u7d22", "\u641c\u7d22\u4e0e\u53d1\u73b0", ["insane-search", "github-repo-search", "find-skills", "\u88ab\u5899", "\u5f00\u6e90\u9879\u76ee", "find a skill"]),
+    ("Web\u4e0e\u4fe1\u606f\u68c0\u7d22", "Web\u667a\u80fd", ["wigolo", "web intelligence", "\u722c\u53d6", "\u6293\u53d6", "crawl", "fetch"]),
+    ("\u8f6f\u4ef6\u5f00\u53d1\u4e0e\u534f\u4f5c", "Git\u4e0e\u591aAgent\u534f\u4f5c", ["git-push", "dual-agent", "\u63a8\u9001", "GitHub", "\u534f\u4f5c\u95ed\u73af", "\u4ea4\u53c9\u6821\u6838"]),
+    ("\u8f6f\u4ef6\u5f00\u53d1\u4e0e\u534f\u4f5c", "\u5f00\u53d1\u65b9\u6cd5\u8bba\uff08superpowers \u63d2\u4ef6\uff09", ["brainstorming", "dispatching-parallel", "executing-plans", "finishing-a-development", "receiving-code-review", "requesting-code-review", "subagent-driven", "systematic-debugging", "test-driven", "using-git-worktrees", "using-superpowers", "verification-before", "writing-plans", "writing-skills"]),
+    ("\u6559\u5b66\u4e0e\u8bfe\u7a0b", "\u8bfe\u7a0b\u5236\u4f5c", ["lesson-builder", "\u5907\u8bfe", "\u8bfe\u4ef6", "\u8bfe\u7a0b"]),
+    ("\u7cfb\u7edf\u4e0e\u5de5\u5177", "\u6280\u80fd\u4e0e\u63d2\u4ef6\u7ba1\u7406", ["skill-creator", "skill-installer", "skill-analyzer", "plugin-creator", "\u521b\u5efa skill", "\u5b89\u88c5 skill", "scaffold plugin"]),
+    ("\u7cfb\u7edf\u4e0e\u5de5\u5177", "\u6587\u6863\u4e0e\u5ba1\u67e5", ["openai-docs", "review-agent", "OpenAI", "\u4ee3\u7801\u5ba1\u67e5", "review"]),
+    ("\u7cfb\u7edf\u4e0e\u5de5\u5177", "\u6574\u7406\u4e0e\u8bb0\u5fc6", ["organize", "memory-init", "project-map-builder", "\u6574\u7406\u6587\u4ef6", "\u8bb0\u5fc6\u7cfb\u7edf", "\u76ee\u5f55\u5730\u56fe"]),
+    ("\u89d2\u8272\u4e0e\u8da3\u5473", "\u4eba\u8bbe\u4e0e\u5ba0\u7269", ["hermes-persona", "hatch-pet", "\u4eba\u8bbe", "\u5ba0\u7269", "persona", "animated pet"]),
+]
+
+_ZH_SRC = {"system": ("\u7cfb\u7edf\u5185\u7f6e", "#3b82f6"), "user": ("\u7528\u6237\u5b89\u88c5", "#22c55e"), "git": ("GitHub\u5b89\u88c5", "#a855f7"), "agents": ("Agents", "#f59e0b"), "plugin": ("\u63d2\u4ef6", "#14b8a6"), "plugin-skill": ("\u63d2\u4ef6", "#14b8a6")}
+
+
+def _categorize_skill(skill):
+    """Return (domain, subcategory) for a skill based on keyword matching."""
+    if skill.get("retired"):
+        return ("\u5df2\u9000\u5f79", "\u5df2\u9000\u5f71")
+    name = (skill.get("name") or "").lower()
+    desc = (skill.get("description") or "").lower()
+    text = name + " " + desc
+    for domain, sub, keywords in DOMAIN_MAP:
+        for kw in keywords:
+            if kw.lower() in text:
+                return (domain, sub)
+    return ("\u5176\u4ed6", "\u672a\u5206\u7c7b")
+
+
+def _dedupe_skills(all_skills):
+    """Deduplicate skills by name, keeping the first occurrence."""
+    seen = set()
+    result = []
+    for s in all_skills:
+        nm = s.get("name", "")
+        if nm in seen:
+            continue
+        seen.add(nm)
+        result.append(s)
+    return result
+
+
+def _infer_scene(name, desc):
+    """Infer a short applicable-scenario string from the description."""
+    if "\u5f53\u7528\u6237\u8bf4" in desc or "\u5f53\u7528\u6237" in desc:
+        idx = desc.find("\u5f53\u7528\u6237")
+        return desc[idx:idx+60].split("\u3002")[0].split(",")[0]
+    d = desc.lower()
+    if "use when" in d:
+        idx = d.find("use when")
+        return desc[idx:idx+80].split(".")[0]
+    if "must use" in d:
+        idx = d.find("must use")
+        return desc[idx:idx+80].split(".")[0]
+    return desc[:60] + ("..." if len(desc) > 60 else "")
+
+
+_ZH_CSS = """:root{--bg:#0f172a;--surface:#1e293b;--border:#475569;--text:#e2e8f0;--dim:#94a3b8;--accent:#38bdf8;--accent2:#818cf8}*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);line-height:1.6}.header{position:sticky;top:0;z-index:100;background:rgba(15,23,42,.95);backdrop-filter:blur(8px);border-bottom:1px solid var(--border);padding:18px 32px 14px}.header h1{font-size:22px;font-weight:700;margin-bottom:4px}.header .meta{font-size:13px;color:var(--dim);margin-bottom:12px}.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.chip{font-size:12px;padding:3px 12px;border:1px solid;border-radius:999px;font-weight:600}.search-box{width:100%;padding:10px 16px;font-size:14px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);outline:none}.search-box:focus{border-color:var(--accent)}.nav-bar{display:flex;gap:8px;flex-wrap:wrap;padding:14px 32px;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:138px;z-index:90}.nav-pill{padding:6px 16px;border-radius:999px;border:1px solid var(--border);background:transparent;color:var(--dim);cursor:pointer;font-size:13px;transition:all .15s}.nav-pill:hover{border-color:var(--accent);color:var(--accent)}.nav-pill.active{background:var(--accent);color:var(--bg);border-color:var(--accent);font-weight:600}.nav-pill .count{font-size:11px;opacity:.7}.main{padding:24px 32px 60px;max-width:1400px;margin:0 auto}.cat-section{margin-bottom:40px}.cat-title{font-size:20px;font-weight:700;padding-bottom:8px;border-bottom:2px solid var(--accent2);margin-bottom:16px}.cat-count{font-size:14px;color:var(--dim);font-weight:400}.sub-group{margin-bottom:24px}.sub-title{font-size:15px;font-weight:600;color:var(--accent);margin-bottom:12px;padding-left:10px;border-left:3px solid var(--accent)}.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:14px}.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;transition:border-color .15s,transform .1s}.card:hover{border-color:var(--accent);transform:translateY(-1px)}.card.retired{opacity:.55}.card-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}.skill-name{font-size:15px;font-weight:700;color:var(--accent);background:rgba(56,189,248,.1);padding:2px 8px;border-radius:4px}.retired-name{font-size:15px;font-weight:700;color:var(--dim);text-decoration:line-through}.badge{font-size:11px;padding:2px 8px;border-radius:4px;color:#fff;font-weight:600;white-space:nowrap}.plugin-tag{font-size:11px;padding:2px 8px;border-radius:4px;background:rgba(20,184,166,.15);color:#2dd4bf;border:1px solid rgba(20,184,166,.3)}.card-body{display:flex;flex-direction:column;gap:6px}.field{display:flex;gap:8px;font-size:13px}.field-label{flex-shrink:0;width:56px;color:var(--dim);font-weight:600}.field-val{color:var(--text);flex:1}.field-val.trig{color:var(--accent2);font-size:12px}.empty{text-align:center;padding:60px;color:var(--dim);font-size:16px;display:none}@media(max-width:768px){.card-grid{grid-template-columns:1fr}.nav-bar{top:auto;position:relative}.header{position:relative}}"""
+
+_ZH_JS = """const search=document.getElementById('search'),cards=document.querySelectorAll('.card'),pills=document.querySelectorAll('.nav-pill'),sections=document.querySelectorAll('.cat-section'),empty=document.getElementById('empty');let activeCat='all';function filter(){const q=search.value.trim().toLowerCase();let vis=0;cards.forEach(c=>{const nm=c.dataset.name,tx=c.textContent.toLowerCase();const co=activeCat==='all'||c.dataset.cat===activeCat;const qo=!q||nm.includes(q)||tx.includes(q);const sh=co&&qo;c.style.display=sh?'':'none';if(sh)vis++});sections.forEach(s=>{const vc=s.querySelectorAll('.card:not([style*="none"])').length;s.style.display=vc>0?'':'none'});document.querySelectorAll('.sub-group').forEach(g=>{const vc=g.querySelectorAll('.card:not([style*="none"])').length;g.style.display=vc>0?'':'none'});empty.style.display=vis===0?'block':'none'}search.addEventListener('input',filter);pills.forEach(p=>p.addEventListener('click',()=>{pills.forEach(x=>x.classList.remove('active'));if(p.dataset.cat===activeCat){activeCat='all'}else{p.classList.add('active');activeCat=p.dataset.cat}filter()}));"""
+
+
+def _zh_card(skill):
+    """Generate a single Chinese skill card HTML."""
+    name = skill.get("name", "")
+    desc = skill.get("description", "")
+    if len(desc) > 300:
+        desc = desc[:297] + "..."
+    src = skill.get("source_type", "user")
+    src_label, src_color = _ZH_SRC.get(src, (src, "#6b7280"))
+    retired = skill.get("retired", False)
+    pn = skill.get("parent_plugin", "")
+    triggers = skill.get("triggers", [])
+    trig_str = " / ".join(triggers[:6]) if triggers else ""
+    scene = _infer_scene(name, desc)
+    cls = "card retired" if retired else "card"
+    nm_html = f'<span class="retired-name">{_html.escape(name)}</span>' if retired else f'<code class="skill-name">{_html.escape(name)}</code>'
+    desc_html = _html.escape(desc) if not retired else f'<span style="text-decoration:line-through;color:#9ca3af">{_html.escape(desc)}</span>'
+    rb = '<span class="badge" style="background:#6b7280">\u5df2\u9000\u5f79</span>' if retired else ""
+    pt = f'<span class="plugin-tag">\u63d2\u4ef6: {_html.escape(pn)}</span>' if pn else ""
+    return f'<div class="{cls}" data-name="{_html.escape(name.lower())}" data-cat=""><div class="card-head">{nm_html}<span class="badge" style="background:{src_color}">{src_label}</span>{pt}{rb}</div><div class="card-body"><div class="field"><span class="field-label">\u63cf\u8ff0</span><span class="field-val">{desc_html}</span></div><div class="field"><span class="field-label">\u9002\u7528\u573a\u666f</span><span class="field-val">{_html.escape(scene)}</span></div><div class="field"><span class="field-label">\u89e6\u53d1\u6761\u4ef6</span><span class="field-val trig">{_html.escape(trig_str)}</span></div></div></div>'
+
+
+def to_html_zh(data):
+    """Generate a Chinese, domain-categorized HTML report with deduplication."""
+    cat = data["categories"]
+    all_skills = []
+    for key in ("system", "user_skills", "agents_skills"):
+        all_skills.extend(cat.get(key, []))
+    for p in cat.get("plugins", []):
+        all_skills.extend(p.get("skills", []))
+    all_skills = _dedupe_skills(all_skills)
+
+    tree = _OD()
+    for s in all_skills:
+        domain, sub = _categorize_skill(s)
+        tree.setdefault(domain, _OD()).setdefault(sub, []).append(s)
+
+    total = len(all_skills)
+    cat_counts = {d: sum(len(v) for v in subs.values()) for d, subs in tree.items()}
+
+    src_totals = {}
+    for s in all_skills:
+        st = s.get("source_type", "user")
+        src_totals[st] = src_totals.get(st, 0) + 1
+    chips = "".join(
+        f'<span class="chip" style="border-color:{_ZH_SRC[s][1]};color:{_ZH_SRC[s][1]}">{_ZH_SRC[s][0]} {src_totals[s]}</span>'
+        for s in ["system", "user", "git", "agents", "plugin", "plugin-skill"] if s in src_totals
+    )
+
+    nav = "".join(
+        f'<button class="nav-pill" data-cat="{_html.escape(d)}">{_html.escape(d)} <span class="count">{cat_counts[d]}</span></button>'
+        for d in tree
+    )
+
+    secs = ""
+    for domain, subs in tree.items():
+        secs += f'<section class="cat-section"><h2 class="cat-title">{_html.escape(domain)} <span class="cat-count">{cat_counts[domain]}</span></h2>'
+        for sub, skills in subs.items():
+            secs += f'<div class="sub-group" data-cat="{_html.escape(domain)}"><h3 class="sub-title">{_html.escape(sub)}</h3><div class="card-grid">'
+            for s in skills:
+                card_html = _zh_card(s)
+                card_html = card_html.replace('data-cat=""', f'data-cat="{_html.escape(domain)}"')
+                secs += card_html
+            secs += "</div></div>"
+        secs += "</section>"
+
+    return f'<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Codex \u6280\u80fd\u4e0e\u63d2\u4ef6\u6e05\u5355 \u00b7 \u6309\u5e94\u7528\u57df\u5206\u7c7b</title><style>{_ZH_CSS}</style></head><body><div class="header"><h1>Codex \u6280\u80fd\u4e0e\u63d2\u4ef6\u6e05\u5355</h1><div class="meta">\u626b\u63cf\u65f6\u95f4\uff1a{_html.escape(data["scan_time"])} \u00b7 \u5171 {total} \u9879 \u00b7 \u6309\u5e94\u7528\u57df\u5206\u7c7b</div><div class="chips">{chips}</div><input class="search-box" type="text" id="search" placeholder="\U0001F50D \u641c\u7d22\u6280\u80fd\u540d\u79f0\u3001\u63cf\u8ff0\u3001\u89e6\u53d1\u6761\u4ef6\u2026" autocomplete="off"></div><div class="nav-bar" id="navBar">{nav}</div><div class="main" id="main">{secs}</div><div class="empty" id="empty">\u672a\u627e\u5230\u5339\u914d\u7684\u6280\u80fd</div><script>{_ZH_JS}</script></body></html>'
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -548,6 +703,10 @@ def main():
     parser.add_argument(
         "--format", choices=["json", "markdown", "html", "all"], default="all",
         help="Output format (default: all = markdown + html)",
+    )
+    parser.add_argument(
+        "--lang", choices=["en", "zh"], default="en",
+        help="Report language: en (English, by source) or zh (Chinese, by application domain with dedup). Default: en",
     )
     parser.add_argument(
         "--codex-home", default=None,
@@ -564,6 +723,8 @@ def main():
     out_dir = args.output or os.getcwd()
     os.makedirs(out_dir, exist_ok=True)
 
+    use_zh = args.lang == "zh"
+
     if args.format == "json":
         print(to_json(data))
     elif args.format == "markdown":
@@ -573,7 +734,7 @@ def main():
             f.write(md)
         print(f"Markdown report saved to: {out_path}")
     elif args.format == "html":
-        html = to_html(data)
+        html = to_html_zh(data) if use_zh else to_html(data)
         out_path = os.path.join(out_dir, "skill-inventory.html")
         with open(out_path, "w", encoding="utf-8") as f:
             f.write(html)
@@ -584,7 +745,7 @@ def main():
         with open(md_path, "w", encoding="utf-8") as f:
             f.write(md)
 
-        html = to_html(data)
+        html = to_html_zh(data) if use_zh else to_html(data)
         html_path = os.path.join(out_dir, "skill-inventory.html")
         with open(html_path, "w", encoding="utf-8") as f:
             f.write(html)
@@ -595,8 +756,14 @@ def main():
 
         print(f"Reports saved to {out_dir}:")
         print(f"  - skill-inventory.md")
-        print(f"  - skill-inventory.html")
+        print(f"  - skill-inventory.html" + (" (zh)" if use_zh else ""))
         print(f"  - skill-inventory.json")
+
+        if use_zh:
+            zh_path = os.path.join(out_dir, "skill-inventory-zh.html")
+            with open(zh_path, "w", encoding="utf-8") as f:
+                f.write(html)
+            print(f"  - skill-inventory-zh.html")
 
 
 if __name__ == "__main__":
